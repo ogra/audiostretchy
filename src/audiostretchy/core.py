@@ -240,10 +240,10 @@ class AudioStretch:
         samples_float32 = np.asarray(samples, dtype=np.float32)
 
         if self.num_channels == 1:
-            return np.ascontiguousarray(samples_float32[0], dtype=np.float32)
+            return np.ascontiguousarray(samples_float32[0])
         elif self.num_channels == 2:
             # Interleave L,R,L,R...
-            return np.ascontiguousarray(samples_float32.T.ravel(), dtype=np.float32)
+            return np.ascontiguousarray(samples_float32.T.ravel())
         else:
             raise ValueError(f"Unsupported channel count: {self.num_channels}")
 
@@ -286,7 +286,7 @@ class AudioStretch:
         # Combine processed and flushed samples
         processed_size = num_processed * self.num_channels
         flushed_size = num_flushed * self.num_channels
-        result = np.empty(processed_size + flushed_size, dtype=np.float32)
+        result = np.zeros(processed_size + flushed_size, dtype=np.float32)
         
         result[:processed_size] = output_buffer[:processed_size]
         result[processed_size:processed_size + flushed_size] = flush_buffer[:flushed_size]
