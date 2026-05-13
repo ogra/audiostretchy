@@ -5,7 +5,7 @@ from wave import Wave_read, Wave_write
 
 import numpy as np
 import pedalboard
-from pedalboard import Pedalboard, Resample  # Explicit imports, removed AudioFile
+from pedalboard import Pedalboard  # Explicit imports, removed AudioFile
 from pedalboard import time_stretch as TimeStretch  # Corrected import
 from pedalboard.io import (
     AudioFile as PedalboardAudioFile,
@@ -57,7 +57,10 @@ class AudioStretch:
             )  # Pedalboard AudioFile expects str or file-like
 
         try:
-            with PedalboardAudioFile(input_source) as f:
+            read_kwargs = {}
+            if format is not None:
+                read_kwargs["format"] = format
+            with PedalboardAudioFile(input_source, **read_kwargs) as f:
                 self.in_samples = f.read(f.frames)
                 self.framerate = f.samplerate
                 self.nchannels = f.num_channels
@@ -117,13 +120,17 @@ class AudioStretch:
             write_kwargs["bit_depth"] = effective_bit_depth
 
         try:
+            open_kwargs = {
+                "mode": "w",
+                "samplerate": self.framerate,
+                "num_channels": self.nchannels,
+                **write_kwargs,
+            }
+            if file is not None and effective_format is not None:
+                open_kwargs["format"] = effective_format
             with PedalboardAudioFile(
                 output_target,
-                mode="w",
-                samplerate=self.framerate,
-                num_channels=self.nchannels,
-                format=effective_format,
-                **write_kwargs,
+                **open_kwargs,
             ) as f:
                 f.write(processed_samples)
 
@@ -148,9 +155,25 @@ class AudioStretch:
             raise ValueError("No audio data to resample. Call open() first.")
         if target_framerate == self.framerate:
             return
-        resampler = Resample(target_sample_rate=target_framerate)
-        self.samples = resampler(self.samples, sample_rate=self.framerate)
+        self.samples = self._resample_array(self.samples, self.framerate, target_framerate)
         self.framerate = target_framerate
+
+    @staticmethod
+    def _resample_array(
+        samples: np.ndarray, source_framerate: int, target_framerate: int
+    ) -> np.ndarray:
+        """Resample channel-first audio with linear interpolation."""
+        num_frames = samples.shape[1]
+        target_frames = max(1, int(num_frames * target_framerate / source_framerate))
+        source_positions = np.arange(num_frames, dtype=np.float64)
+        target_positions = np.linspace(0, num_frames - 1, target_frames)
+        resampled = np.vstack(
+            [
+                np.interp(target_positions, source_positions, channel)
+                for channel in samples
+            ]
+        )
+        return np.ascontiguousarray(resampled, dtype=np.float32)
 
     def stretch(
         self,

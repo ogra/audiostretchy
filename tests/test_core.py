@@ -5,6 +5,7 @@ Tests for the core AudioStretch functionality.
 
 import numpy as np
 import pytest
+import soundfile as sf
 from pathlib import Path
 
 from audiostretchy.core import AudioStretch, stretch_audio
@@ -83,6 +84,23 @@ class TestAudioStretch:
         
         # Samples should be unchanged
         np.testing.assert_array_equal(processor.samples, original_samples)
+
+    def test_save_wav_bit_depth(self, tmp_path):
+        """Test WAV save defaults to float32 and allows bit depth override."""
+        processor = AudioStretch()
+        processor.samples = np.zeros((1, 1000), dtype=np.float32)
+        processor.samplerate = 44100
+        processor.num_channels = 1
+
+        float_output = tmp_path / "float.wav"
+        processor.save(float_output)
+        with sf.SoundFile(float_output) as audio_file:
+            assert audio_file.subtype == "FLOAT"
+
+        pcm_output = tmp_path / "pcm.wav"
+        processor.save(pcm_output, bit_depth=16)
+        with sf.SoundFile(pcm_output) as audio_file:
+            assert audio_file.subtype == "PCM_16"
     
     def test_interleave_mono(self):
         """Test mono float32 interleaving."""

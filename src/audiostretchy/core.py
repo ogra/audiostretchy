@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import BinaryIO, Optional, Union
 
 import numpy as np
-from pedalboard import Resample
 from pedalboard.io import AudioFile
 
 from .c_interface import TDHSAudioStretch
@@ -51,7 +50,10 @@ class AudioStretch:
         input_source = file if file is not None else str(path)
         
         try:
-            with AudioFile(input_source, format=format) as f:
+            read_kwargs = {}
+            if format is not None:
+                read_kwargs["format"] = format
+            with AudioFile(input_source, **read_kwargs) as f:
                 # Read all audio data into memory
                 self.samples = f.read(f.frames)
                 self.samplerate = f.samplerate
@@ -101,13 +103,17 @@ class AudioStretch:
             write_kwargs["bit_depth"] = effective_bit_depth
             
         try:
+            open_kwargs = {
+                "mode": "w",
+                "samplerate": self.samplerate,
+                "num_channels": self.num_channels,
+                **write_kwargs,
+            }
+            if file is not None and format is not None:
+                open_kwargs["format"] = format
             with AudioFile(
                 output_target,
-                mode="w",
-                samplerate=self.samplerate,
-                num_channels=self.num_channels,
-                format=format,
-                **write_kwargs,
+                **open_kwargs,
             ) as f:
                 f.write(self.samples)
                 
@@ -131,9 +137,27 @@ class AudioStretch:
         if target_samplerate == self.samplerate:
             return  # No resampling needed
             
-        resampler = Resample(target_sample_rate=target_samplerate)
-        self.samples = resampler(self.samples, sample_rate=self.samplerate)
+        self.samples = self._resample_array(self.samples, self.samplerate, target_samplerate)
         self.samplerate = target_samplerate
+
+    @staticmethod
+    def _resample_array(
+        samples: np.ndarray, source_samplerate: int, target_samplerate: int
+    ) -> np.ndarray:
+        """Resample channel-first audio with linear interpolation."""
+        if source_samplerate == target_samplerate:
+            return samples
+        num_frames = samples.shape[1]
+        target_frames = max(1, int(num_frames * target_samplerate / source_samplerate))
+        source_positions = np.arange(num_frames, dtype=np.float64)
+        target_positions = np.linspace(0, num_frames - 1, target_frames)
+        resampled = np.vstack(
+            [
+                np.interp(target_positions, source_positions, channel)
+                for channel in samples
+            ]
+        )
+        return np.ascontiguousarray(resampled, dtype=np.float32)
 
     def stretch(
         self,
@@ -283,7 +307,7 @@ def stretch_audio(
     sample_rate: int = 0,
 ) -> None:
     """
-    Convenience function to stretch an audio file.
+    AudioStretchy convenience function to stretch an audio file.
 
     Args:
         input_path: Path to input audio file
