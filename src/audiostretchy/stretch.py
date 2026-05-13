@@ -114,7 +114,11 @@ class AudioStretch:
 
         write_kwargs = {}
         effective_bit_depth = bit_depth
-        if effective_bit_depth is None and (effective_format or "").lower() == "wav":
+        if (
+            effective_bit_depth is None
+            and effective_format is not None
+            and effective_format.lower() == "wav"
+        ):
             effective_bit_depth = 32
         if effective_bit_depth is not None:
             write_kwargs["bit_depth"] = effective_bit_depth
