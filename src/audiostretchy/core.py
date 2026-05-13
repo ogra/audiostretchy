@@ -50,9 +50,7 @@ class AudioStretch:
         input_source = file if file is not None else str(path)
         
         try:
-            read_kwargs = {}
-            if format is not None:
-                read_kwargs["format"] = format
+            read_kwargs = {"format": format} if format is not None else {}
             with AudioFile(input_source, **read_kwargs) as f:
                 # Read all audio data into memory
                 self.samples = f.read(f.frames)
@@ -101,6 +99,9 @@ class AudioStretch:
             effective_bit_depth = 32
         if effective_bit_depth is not None:
             write_kwargs["bit_depth"] = effective_bit_depth
+
+        if file is not None and format is None:
+            raise ValueError("format is required when saving to a file object")
             
         try:
             open_kwargs = {
@@ -236,8 +237,7 @@ class AudioStretch:
 
     def _interleave(self, samples: np.ndarray) -> np.ndarray:
         """Flatten channel-first samples to contiguous interleaved float32."""
-        if samples.dtype != np.float32:
-            samples = samples.astype(np.float32, copy=False)
+        samples = np.asarray(samples, dtype=np.float32)
 
         if self.num_channels == 1:
             return np.ascontiguousarray(samples[0], dtype=np.float32)

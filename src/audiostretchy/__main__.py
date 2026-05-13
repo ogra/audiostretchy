@@ -14,7 +14,7 @@ from .core import stretch_audio
 
 def main():
     """Main CLI entry point."""
-    help_requested = sys.argv[1:] in (["--help"], ["-h"])
+    help_requested = any(arg in {"--help", "-h"} for arg in sys.argv[1:])
     fire.core.Display = lambda lines, out: print(
         *lines, file=sys.stdout if help_requested else out
     )

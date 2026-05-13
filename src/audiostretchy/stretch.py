@@ -57,9 +57,7 @@ class AudioStretch:
             )  # Pedalboard AudioFile expects str or file-like
 
         try:
-            read_kwargs = {}
-            if format is not None:
-                read_kwargs["format"] = format
+            read_kwargs = {"format": format} if format is not None else {}
             with PedalboardAudioFile(input_source, **read_kwargs) as f:
                 self.in_samples = f.read(f.frames)
                 self.framerate = f.samplerate
@@ -122,6 +120,9 @@ class AudioStretch:
             effective_bit_depth = 32
         if effective_bit_depth is not None:
             write_kwargs["bit_depth"] = effective_bit_depth
+
+        if file is not None and effective_format is None:
+            raise ValueError("format is required when saving to a file object")
 
         try:
             open_kwargs = {
