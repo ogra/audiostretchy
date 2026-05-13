@@ -309,7 +309,9 @@ def stretch_audio(
     sample_rate: int = 0,
 ) -> None:
     """
-    AudioStretch convenience function for the audiostretchy package.
+    Convenience function to stretch an audio file.
+
+    Part of the audiostretchy package.
 
     Args:
         input_path: Path to input audio file

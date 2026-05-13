@@ -150,6 +150,9 @@ class AudioStretch:
 
         Args:
             target_framerate (int): Target sample rate.
+
+        Returns:
+            None
         """
         if self.samples is None:
             raise ValueError("No audio data to resample. Call open() first.")
