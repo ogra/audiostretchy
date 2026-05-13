@@ -5,15 +5,18 @@ Command-line interface for AudioStretchy.
 Provides CLI access to audio time-stretching functionality.
 """
 
-import fire
 import sys
+
+import fire
 
 from .core import stretch_audio
 
 
 def main():
     """Main CLI entry point."""
-    fire.core.Display = lambda lines, out: print(*lines, file=sys.stdout)
+    fire.core.Display = lambda lines, out: print(
+        *lines, file=sys.stdout if "--help" in sys.argv else out
+    )
     fire.Fire(stretch_audio)
 
 

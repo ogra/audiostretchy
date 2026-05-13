@@ -137,7 +137,9 @@ class AudioStretch:
         if target_samplerate == self.samplerate:
             return  # No resampling needed
             
-        self.samples = self._resample_array(self.samples, self.samplerate, target_samplerate)
+        self.samples = self._resample_array(
+            self.samples, self.samplerate, target_samplerate
+        )
         self.samplerate = target_samplerate
 
     @staticmethod
@@ -307,7 +309,7 @@ def stretch_audio(
     sample_rate: int = 0,
 ) -> None:
     """
-    AudioStretchy convenience function to stretch an audio file.
+    AudioStretch convenience function for the audiostretchy package.
 
     Args:
         input_path: Path to input audio file

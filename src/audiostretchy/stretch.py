@@ -146,7 +146,7 @@ class AudioStretch:
 
     def resample(self, target_framerate: int):
         """
-        Resample the audio using Pedalboard.
+        Resample the audio with linear interpolation.
 
         Args:
             target_framerate (int): Target sample rate.
@@ -155,7 +155,9 @@ class AudioStretch:
             raise ValueError("No audio data to resample. Call open() first.")
         if target_framerate == self.framerate:
             return
-        self.samples = self._resample_array(self.samples, self.framerate, target_framerate)
+        self.samples = self._resample_array(
+            self.samples, self.framerate, target_framerate
+        )
         self.framerate = target_framerate
 
     @staticmethod
