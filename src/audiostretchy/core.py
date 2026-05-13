@@ -237,24 +237,24 @@ class AudioStretch:
 
     def _interleave(self, samples: np.ndarray) -> np.ndarray:
         """Flatten channel-first samples to contiguous interleaved float32."""
-        samples = np.asarray(samples, dtype=np.float32)
+        samples_float32 = np.asarray(samples, dtype=np.float32)
 
         if self.num_channels == 1:
-            return np.ascontiguousarray(samples[0], dtype=np.float32)
+            return np.ascontiguousarray(samples_float32[0], dtype=np.float32)
         elif self.num_channels == 2:
             # Interleave L,R,L,R...
-            return np.ascontiguousarray(samples.T.ravel(), dtype=np.float32)
+            return np.ascontiguousarray(samples_float32.T.ravel(), dtype=np.float32)
         else:
             raise ValueError(f"Unsupported channel count: {self.num_channels}")
 
     def _deinterleave(self, samples: np.ndarray) -> np.ndarray:
         """Restore contiguous channel-first float32 samples from interleaved input."""
-        samples = np.asarray(samples, dtype=np.float32)
+        samples_float32 = np.asarray(samples, dtype=np.float32)
         if self.num_channels == 1:
-            return np.ascontiguousarray(samples.reshape(1, -1))
+            return np.ascontiguousarray(samples_float32.reshape(1, -1))
         elif self.num_channels == 2:
             # De-interleave L,R,L,R... to (2, N)
-            return np.ascontiguousarray(samples.reshape(-1, 2).T)
+            return np.ascontiguousarray(samples_float32.reshape(-1, 2).T)
         else:
             raise ValueError(f"Unsupported channel count: {self.num_channels}")
 
