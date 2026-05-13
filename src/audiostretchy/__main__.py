@@ -6,13 +6,14 @@ Provides CLI access to audio time-stretching functionality.
 """
 
 import fire
+import sys
 
 from .core import stretch_audio
 
 
 def main():
     """Main CLI entry point."""
-    fire.core.Display = lambda lines, out: print(*lines, file=out)
+    fire.core.Display = lambda lines, out: print(*lines, file=sys.stdout)
     fire.Fire(stretch_audio)
 
 

@@ -66,6 +66,7 @@ class AudioStretch:
         path: Optional[Union[str, Path]] = None,
         file: Optional[BinaryIO] = None,
         format: Optional[str] = None,
+        bit_depth: Optional[int] = None,
     ) -> None:
         """
         Save processed audio using Pedalboard.
@@ -74,6 +75,7 @@ class AudioStretch:
             path: Path to save the audio file
             file: Binary I/O object to write audio data
             format: Audio format (inferred from path extension if not specified)
+            bit_depth: Output bit depth (defaults to 32 for WAV)
             
         Raises:
             ValueError: If no audio data or invalid parameters
@@ -90,6 +92,13 @@ class AudioStretch:
         # Infer format from path extension if not specified
         if format is None and path is not None:
             format = Path(path).suffix.lstrip(".")
+
+        write_kwargs = {}
+        effective_bit_depth = bit_depth
+        if effective_bit_depth is None and (format or "").lower() == "wav":
+            effective_bit_depth = 32
+        if effective_bit_depth is not None:
+            write_kwargs["bit_depth"] = effective_bit_depth
             
         try:
             with AudioFile(
@@ -98,6 +107,7 @@ class AudioStretch:
                 samplerate=self.samplerate,
                 num_channels=self.num_channels,
                 format=format,
+                **write_kwargs,
             ) as f:
                 f.write(self.samples)
                 
@@ -170,8 +180,8 @@ class AudioStretch:
         if ratio == 1.0 and effective_gap_ratio == 1.0:
             return
             
-        # Convert float32 samples to int16 for C library
-        samples_int16 = self._convert_to_int16(self.samples)
+        # Interleave float32 samples for C library
+        samples_float = self._interleave(self.samples)
         
         # Set up TDHS parameters
         min_period = max(1, int(self.samplerate / upper_freq))
@@ -188,73 +198,69 @@ class AudioStretch:
         
         try:
             # Process audio
-            output_samples = self._process_with_stretcher(stretcher, samples_int16, ratio)
+            output_samples = self._process_with_stretcher_float(
+                stretcher, samples_float, ratio
+            )
             
-            # Convert back to float32 and update samples
-            self.samples = self._convert_from_int16(output_samples)
+            # Restore channel-first layout
+            self.samples = self._deinterleave(output_samples)
             
         finally:
             stretcher.deinit()
 
-    def _convert_to_int16(self, samples: np.ndarray) -> np.ndarray:
-        """Convert float32 samples to int16 format expected by C library."""
-        # Clip to valid range and convert
-        samples_clipped = np.clip(samples, -1.0, 1.0)
-        samples_int16 = (samples_clipped * 32767).astype(np.int16)
-        
-        # Interleave channels if stereo
+    def _interleave(self, samples: np.ndarray) -> np.ndarray:
+        """Flatten channel-first samples to contiguous interleaved float32."""
+        if samples.dtype != np.float32:
+            samples = samples.astype(np.float32, copy=False)
+
         if self.num_channels == 1:
-            return np.ascontiguousarray(samples_int16[0])
+            return np.ascontiguousarray(samples[0], dtype=np.float32)
         elif self.num_channels == 2:
             # Interleave L,R,L,R...
-            return np.ascontiguousarray(samples_int16.T.ravel())
+            return np.ascontiguousarray(samples.T.ravel(), dtype=np.float32)
         else:
             raise ValueError(f"Unsupported channel count: {self.num_channels}")
 
-    def _convert_from_int16(self, samples_int16: np.ndarray) -> np.ndarray:
-        """Convert int16 samples back to float32 format."""
-        samples_float32 = samples_int16.astype(np.float32) / 32767.0
-        
-        # De-interleave channels if stereo
+    def _deinterleave(self, samples: np.ndarray) -> np.ndarray:
+        """Restore contiguous channel-first float32 samples from interleaved input."""
+        samples = np.asarray(samples, dtype=np.float32)
         if self.num_channels == 1:
-            return samples_float32.reshape(1, -1)
+            return np.ascontiguousarray(samples.reshape(1, -1))
         elif self.num_channels == 2:
             # De-interleave L,R,L,R... to (2, N)
-            return samples_float32.reshape(-1, 2).T
+            return np.ascontiguousarray(samples.reshape(-1, 2).T)
         else:
             raise ValueError(f"Unsupported channel count: {self.num_channels}")
 
-    def _process_with_stretcher(
+    def _process_with_stretcher_float(
         self, 
         stretcher: TDHSAudioStretch,
-        samples_int16: np.ndarray,
+        samples_float: np.ndarray,
         ratio: float
     ) -> np.ndarray:
-        """Process samples using the TDHS stretcher."""
-        num_input_frames = len(samples_int16) // self.num_channels
+        """Process float32 samples using the TDHS stretcher."""
+        num_input_frames = len(samples_float) // self.num_channels
         
         # Calculate output buffer capacity
         max_ratio_for_capacity = 4.0 if ratio > 2.0 or ratio < 0.5 else 2.0
         effective_max_ratio = max(ratio, max_ratio_for_capacity if ratio > 1.0 else 1.0 / ratio)
         
         output_capacity = stretcher.output_capacity(num_input_frames, effective_max_ratio)
-        output_buffer = np.zeros(output_capacity * self.num_channels, dtype=np.int16)
+        output_buffer = np.zeros(output_capacity * self.num_channels, dtype=np.float32)
         
         # Process samples
-        num_processed = stretcher.process_samples(
-            samples_int16, num_input_frames, output_buffer, ratio
+        num_processed = stretcher.process_samples_float(
+            samples_float, num_input_frames, output_buffer, ratio
         )
         
         # Flush remaining samples
-        flush_buffer = np.zeros(output_capacity * self.num_channels, dtype=np.int16)
-        num_flushed = stretcher.flush(flush_buffer)
+        flush_buffer = np.zeros(output_capacity * self.num_channels, dtype=np.float32)
+        num_flushed = stretcher.flush_float(flush_buffer)
         
         # Combine processed and flushed samples
-        total_samples = num_processed + num_flushed
-        result = np.zeros(total_samples * self.num_channels, dtype=np.int16)
-        
         processed_size = num_processed * self.num_channels
         flushed_size = num_flushed * self.num_channels
+        result = np.empty(processed_size + flushed_size, dtype=np.float32)
         
         result[:processed_size] = output_buffer[:processed_size]
         result[processed_size:processed_size + flushed_size] = flush_buffer[:flushed_size]

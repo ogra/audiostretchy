@@ -83,12 +83,27 @@ class TDHSAudioStretch:
             ctypes.c_float,
         ]
         self.stretch_samples.restype = ctypes.c_int
+        self.stretch_samples_float = stretch_lib.stretch_samples_float
+        self.stretch_samples_float.argtypes = [
+            ctypes.c_void_p,
+            np.ctypeslib.ndpointer(dtype=np.float32),
+            ctypes.c_int,
+            np.ctypeslib.ndpointer(dtype=np.float32),
+            ctypes.c_float,
+        ]
+        self.stretch_samples_float.restype = ctypes.c_int
         self.stretch_flush = stretch_lib.stretch_flush
         self.stretch_flush.argtypes = [
             ctypes.c_void_p,
             np.ctypeslib.ndpointer(dtype=np.int16),
         ]
         self.stretch_flush.restype = ctypes.c_int
+        self.stretch_flush_float = stretch_lib.stretch_flush_float
+        self.stretch_flush_float.argtypes = [
+            ctypes.c_void_p,
+            np.ctypeslib.ndpointer(dtype=np.float32),
+        ]
+        self.stretch_flush_float.restype = ctypes.c_int
         self.stretch_reset = stretch_lib.stretch_reset
         self.stretch_reset.argtypes = [ctypes.c_void_p]
         self.stretch_reset.restype = None
@@ -121,6 +136,22 @@ class TDHSAudioStretch:
         """
         return self.stretch_samples(self.handle, samples, num_samples, output, ratio)
 
+    def process_samples_float(
+        self, samples: np.ndarray, num_samples: int, output: np.ndarray, ratio: float
+    ) -> int:
+        """
+        Process the float32 samples with a specified ratio.
+
+        :param samples: The input audio samples.
+        :param num_samples: The number of samples.
+        :param output: The output audio samples.
+        :param ratio: The stretching ratio.
+        :return: The number of processed samples.
+        """
+        return self.stretch_samples_float(
+            self.handle, samples, num_samples, output, ratio
+        )
+
     def flush(self, output: np.ndarray) -> int:
         """
         Flush any leftover samples out at normal speed.
@@ -129,6 +160,15 @@ class TDHSAudioStretch:
         :return: The number of flushed samples.
         """
         return self.stretch_flush(self.handle, output)
+
+    def flush_float(self, output: np.ndarray) -> int:
+        """
+        Flush any leftover float32 samples out at normal speed.
+
+        :param output: The output audio samples.
+        :return: The number of flushed samples.
+        """
+        return self.stretch_flush_float(self.handle, output)
 
     def reset(self) -> None:
         """

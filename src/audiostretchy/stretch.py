@@ -70,6 +70,8 @@ class AudioStretch:
         path: str | Path | None = None,
         file: BinaryIO | None = None,
         format: str | None = None,
+        output_format: str | None = None,
+        bit_depth: int | None = None,
     ):
         """
         Save the audio file using Pedalboard.
@@ -77,8 +79,9 @@ class AudioStretch:
         Args:
             path (Union[str, Path], optional): Path to save the audio file.
             file (BinaryIO, optional): Binary I/O object to save the audio file.
-            output_format (str, optional): The format of the audio file (e.g., 'wav', 'mp3').
-                                       Pedalboard often infers from path extension.
+            format (str, optional): The format of the audio file (e.g., 'wav', 'mp3').
+            output_format (str, optional): Backward-compatible alias for format.
+            bit_depth (int, optional): Output bit depth (defaults to 32 for WAV).
         """
         output_target = file or path
         if not output_target:
@@ -102,29 +105,27 @@ class AudioStretch:
                 processed_samples, dtype=np.float32
             )
 
+        effective_format = output_format or format
+        if effective_format is None and isinstance(output_target, str):
+            effective_format = Path(output_target).suffix[1:]
+
+        write_kwargs = {}
+        effective_bit_depth = bit_depth
+        if effective_bit_depth is None and (effective_format or "").lower() == "wav":
+            effective_bit_depth = 32
+        if effective_bit_depth is not None:
+            write_kwargs["bit_depth"] = effective_bit_depth
+
         try:
-            if isinstance(output_target, str) and not file:  # If it's a path string
-                with open(output_target, "wb") as actual_file_obj:
-                    with PedalboardAudioFile(
-                        actual_file_obj,  # Pass the file object
-                        mode="w",
-                        samplerate=self.framerate,
-                        num_channels=self.nchannels,
-                        format=output_format or Path(output_target).suffix[1:],
-                    ) as f:
-                        f.write(processed_samples)
-            elif file:  # If it was a file object to begin with
-                with PedalboardAudioFile(
-                    file,  # Pass the original file object
-                    mode="w",
-                    samplerate=self.framerate,
-                    num_channels=self.nchannels,
-                    format=output_format,
-                ) as f:
-                    f.write(processed_samples)
-            else:
-                # This case should ideally not be reached if output_target is always set
-                raise ValueError("Invalid output target for saving.")
+            with PedalboardAudioFile(
+                output_target,
+                mode="w",
+                samplerate=self.framerate,
+                num_channels=self.nchannels,
+                format=effective_format,
+                **write_kwargs,
+            ) as f:
+                f.write(processed_samples)
 
         except Exception as e:
             # Ensure output_target for the error message is the original path/file identifier
@@ -141,30 +142,14 @@ class AudioStretch:
         Resample the audio using Pedalboard.
 
         Args:
-            audio (np.ndarray): Audio data.
-            samples (int): Number of samples.
-            channels (int): Number of audio channels.
-
-        Returns:
-            float: RMS level in dB, or -infinity for silent segments.
+            target_framerate (int): Target sample rate.
         """
-        if samples == 0:
-            return float("-inf")
-
-        rms_sum = 0.0
-        for i in range(samples):
-            if channels == 1:
-                rms_sum += float(audio[i]) * audio[i]
-            else:
-                average = (audio[i * 2] + audio[i * 2 + 1]) / 2.0
-                rms_sum += average * average
-
-        # Add a small epsilon to prevent log10(0)
-        normalized_sum = rms_sum / samples / (32768.0 * 32767.0 * 0.5)
-        epsilon = 1e-10  # Small value to prevent log10(0)
-
-        return 10.0 * np.log10(max(normalized_sum, epsilon))
-
+        if self.samples is None:
+            raise ValueError("No audio data to resample. Call open() first.")
+        if target_framerate == self.framerate:
+            return
+        resampler = Resample(target_sample_rate=target_framerate)
+        self.samples = resampler(self.samples, sample_rate=self.framerate)
         self.framerate = target_framerate
 
     def stretch(
@@ -181,8 +166,7 @@ class AudioStretch:
     ):
         """
         Stretch the audio using the TDHS C library.
-        Audio data is read as float32 by Pedalboard, converted to int16 for TDHS,
-        and then converted back to float32.
+        Audio data is read as float32 by Pedalboard and passed to TDHS as float32.
 
         Args:
             ratio (float): Stretch ratio. > 1.0 makes audio longer. Default 1.0.
@@ -204,20 +188,13 @@ class AudioStretch:
             if ratio == 1.0 and effective_gap_ratio == 1.0:
                 return  # No stretching needed
 
-        # Pedalboard samples are float32, shape (num_channels, num_frames)
-        # TDHS C library expects int16, interleaved if stereo [L, R, L, R, ...]
-
-        # Convert float32 samples to int16
-        # Max value of int16 is 32767
-        int16_samples = (self.samples * 32767).astype(np.int16)
-
-        # Interleave if stereo
+        # Interleave float32 samples if stereo
         if self.nchannels == 1:
             # For mono, TDHS expects a 1D array
-            pcm_data_in = np.ascontiguousarray(int16_samples[0, :])
+            pcm_data_in = np.ascontiguousarray(self.samples[0, :], dtype=np.float32)
         elif self.nchannels == 2:
             # For stereo, interleave L and R channels
-            pcm_data_in = np.ascontiguousarray(int16_samples.T.ravel())
+            pcm_data_in = np.ascontiguousarray(self.samples.T.ravel(), dtype=np.float32)
         else:
             raise ValueError(
                 f"TDHSAudioStretch currently supports 1 or 2 channels, not {self.nchannels}"
@@ -284,9 +261,9 @@ class AudioStretch:
         out_capacity = stretcher.output_capacity(
             num_input_frames_per_channel, max_effective_ratio_for_capacity
         )
-        pcm_data_out = np.zeros(out_capacity * self.nchannels, dtype=np.int16)
+        pcm_data_out = np.zeros(out_capacity * self.nchannels, dtype=np.float32)
 
-        num_processed_frames = stretcher.process_samples(
+        num_processed_frames = stretcher.process_samples_float(
             pcm_data_in, num_input_frames_per_channel, pcm_data_out, ratio
         )
 
@@ -294,12 +271,12 @@ class AudioStretch:
         # The flush buffer needs to be large enough.
         # Output_capacity should also cover typical flush sizes from TDHS.
         pcm_data_flush_out = np.zeros(
-            out_capacity * self.nchannels, dtype=np.int16
+            out_capacity * self.nchannels, dtype=np.float32
         )  # Re-use capacity estimate
-        num_flushed_frames = stretcher.flush(pcm_data_flush_out)
+        num_flushed_frames = stretcher.flush_float(pcm_data_flush_out)
 
         # Concatenate processed and flushed samples
-        actual_output_samples_int16 = np.concatenate(
+        float32_output_samples = np.concatenate(
             (
                 pcm_data_out[: num_processed_frames * self.nchannels],
                 pcm_data_flush_out[: num_flushed_frames * self.nchannels],
@@ -308,12 +285,7 @@ class AudioStretch:
 
         stretcher.deinit()
 
-        # Convert back to float32 and de-interleave
-        # TDHS output is also int16, interleaved
-        float32_output_samples = (
-            actual_output_samples_int16.astype(np.float32) / 32767.0
-        )
-
+        # De-interleave
         if self.nchannels == 1:
             self.samples = float32_output_samples.reshape(1, -1)
         elif self.nchannels == 2:

@@ -84,21 +84,22 @@ class TestAudioStretch:
         # Samples should be unchanged
         np.testing.assert_array_equal(processor.samples, original_samples)
     
-    def test_convert_to_int16_mono(self):
-        """Test float32 to int16 conversion for mono audio."""
+    def test_interleave_mono(self):
+        """Test mono float32 interleaving."""
         processor = AudioStretch()
         processor.num_channels = 1
         
         # Create test samples
         float_samples = np.array([[0.0, 0.5, -0.5, 1.0, -1.0]], dtype=np.float32)
         
-        int16_samples = processor._convert_to_int16(float_samples)
+        interleaved = processor._interleave(float_samples)
         
-        expected = np.array([0, 16383, -16384, 32767, -32767], dtype=np.int16)
-        np.testing.assert_array_equal(int16_samples, expected)
+        expected = np.array([0.0, 0.5, -0.5, 1.0, -1.0], dtype=np.float32)
+        np.testing.assert_array_equal(interleaved, expected)
+        assert interleaved.dtype == np.float32
     
-    def test_convert_to_int16_stereo(self):
-        """Test float32 to int16 conversion for stereo audio."""
+    def test_interleave_stereo(self):
+        """Test stereo float32 interleaving."""
         processor = AudioStretch()
         processor.num_channels = 2
         
@@ -108,39 +109,42 @@ class TestAudioStretch:
             [1.0, -1.0, 0.0]   # Right channel
         ], dtype=np.float32)
         
-        int16_samples = processor._convert_to_int16(float_samples)
+        interleaved = processor._interleave(float_samples)
         
         # Should be interleaved: L0, R0, L1, R1, L2, R2
-        expected = np.array([0, 32767, 16383, -32767, -16384, 0], dtype=np.int16)
-        np.testing.assert_array_equal(int16_samples, expected)
+        expected = np.array([0.0, 1.0, 0.5, -1.0, -0.5, 0.0], dtype=np.float32)
+        np.testing.assert_array_equal(interleaved, expected)
+        assert interleaved.dtype == np.float32
     
-    def test_convert_from_int16_mono(self):
-        """Test int16 to float32 conversion for mono audio."""
+    def test_deinterleave_mono(self):
+        """Test mono float32 deinterleaving."""
         processor = AudioStretch()
         processor.num_channels = 1
         
-        int16_samples = np.array([0, 16383, -16384, 32767, -32767], dtype=np.int16)
+        interleaved = np.array([0.0, 0.5, -0.5, 1.0, -1.0], dtype=np.float32)
         
-        float_samples = processor._convert_from_int16(int16_samples)
+        float_samples = processor._deinterleave(interleaved)
         
-        expected = np.array([[0.0, 16383/32767, -16384/32767, 1.0, -1.0]], dtype=np.float32)
-        np.testing.assert_array_almost_equal(float_samples, expected, decimal=5)
+        expected = np.array([[0.0, 0.5, -0.5, 1.0, -1.0]], dtype=np.float32)
+        np.testing.assert_array_equal(float_samples, expected)
+        assert float_samples.dtype == np.float32
     
-    def test_convert_from_int16_stereo(self):
-        """Test int16 to float32 conversion for stereo audio."""
+    def test_deinterleave_stereo(self):
+        """Test stereo float32 deinterleaving."""
         processor = AudioStretch()
         processor.num_channels = 2
         
         # Interleaved: L0, R0, L1, R1, L2, R2
-        int16_samples = np.array([0, 32767, 16383, -32767, -16384, 0], dtype=np.int16)
+        interleaved = np.array([0.0, 1.0, 0.5, -1.0, -0.5, 0.0], dtype=np.float32)
         
-        float_samples = processor._convert_from_int16(int16_samples)
+        float_samples = processor._deinterleave(interleaved)
         
         expected = np.array([
-            [0.0, 16383/32767, -16384/32767],  # Left channel
+            [0.0, 0.5, -0.5],  # Left channel
             [1.0, -1.0, 0.0]                   # Right channel
         ], dtype=np.float32)
-        np.testing.assert_array_almost_equal(float_samples, expected, decimal=5)
+        np.testing.assert_array_equal(float_samples, expected)
+        assert float_samples.dtype == np.float32
     
     def test_unsupported_channels(self):
         """Test error handling for unsupported channel counts."""
@@ -150,12 +154,12 @@ class TestAudioStretch:
         float_samples = np.random.random((3, 100)).astype(np.float32)
         
         with pytest.raises(ValueError, match="Unsupported channel count: 3"):
-            processor._convert_to_int16(float_samples)
+            processor._interleave(float_samples)
         
-        int16_samples = np.random.randint(-32767, 32767, 300, dtype=np.int16)
+        interleaved = np.random.random(300).astype(np.float32)
         
         with pytest.raises(ValueError, match="Unsupported channel count: 3"):
-            processor._convert_from_int16(int16_samples)
+            processor._deinterleave(interleaved)
 
 
 def test_stretch_audio_function():
