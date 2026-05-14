@@ -12,6 +12,11 @@ __pycache__/*
 .*.swp
 */.ipynb_checkpoints/*
 .DS_Store
+*.dylib
+*.so
+*.dll
+*.tar.gz
+*.tgz
 
 # Project files
 .ropeproject
@@ -27,6 +32,7 @@ tags
 *.eggs/
 .installed.cfg
 *.egg-info
+*.whl
 
 # Unittest and coverage
 htmlcov/*

@@ -11,9 +11,8 @@ from pedalboard.io import (
     AudioFile as PedalboardAudioFile,
 )  # Alias for clarity is correctly used
 
-# Assuming TDHSAudioStretch might be conditionally used or replaced entirely.
-# If fully replaced, this import and the vendors/stretch submodule might be removable later.
-from .interface.tdhs import TDHSAudioStretch
+# Use the unified c_interface wrapper so all call paths resolve the same library set.
+from .c_interface import TDHSAudioStretch
 
 
 class AudioStretch:

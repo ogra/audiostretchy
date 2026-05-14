@@ -102,6 +102,9 @@ dependencies = [
 addopts = "--cov=src/audiostretchy --cov-report=term-missing --verbose"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
+markers = [
+    "performance: performance benchmark tests",
+]
 
 # Linting and formatting
 [tool.ruff]

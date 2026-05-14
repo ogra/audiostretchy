@@ -15,7 +15,7 @@ fi
 # Install test dependencies
 echo "📦 Installing test dependencies..."
 python -m pip install --upgrade pip
-pip install -e .[testing]
+pip install -e .[test]
 
 # Run tests with coverage
 echo "🧪 Running tests with coverage..."
