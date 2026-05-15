@@ -4,9 +4,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
@@ -16,56 +16,64 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install system dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-    - name: Install system dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install ffmpeg
+      - name: Install system dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install ffmpeg
 
-    - name: Install system dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        # FFmpeg installation for Windows
-        choco install ffmpeg
+      - name: Install system dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          # FFmpeg installation for Windows
+          choco install ffmpeg
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[testing]
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[test]
 
-    - name: Lint with flake8
-      run: |
-        flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 src tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Compile C library
+        run: |
+          python scripts/compile_c.py --verbose
 
-    - name: Test with pytest
-      run: |
-        pytest tests/ -v --cov=src/audiostretchy --cov-report=xml
+      - name: Verify compiled library exists
+        run: |
+          python -c "import platform, pathlib, sys; s=platform.system(); a=platform.machine().lower(); n=('_stretch_arm64.dylib' if s=='Darwin' and a in ('arm64', 'aarch64') else '_stretch_x64.dylib' if s=='Darwin' else '_stretch_aarch64.so' if s=='Linux' and a in ('arm64', 'aarch64') else '_stretch_x64.so' if s=='Linux' else '_stretch_x64.dll' if s=='Windows' and a in ('amd64', 'x86_64') else '_stretch.dll'); p=pathlib.Path('src/audiostretchy/c_interface/lib')/n; print('expect:', p); sys.exit(0 if p.exists() else 1)"
 
-    - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
+      - name: Lint with flake8
+        run: |
+          flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Test with pytest
+        run: |
+          pytest tests/ -v --cov=src/audiostretchy --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
 
   build:
     needs: test
@@ -75,26 +83,34 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
 
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build wheel
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel
 
-    - name: Build package
-      run: |
-        python -m build
+      - name: Compile C library
+        run: |
+          python scripts/compile_c.py --verbose
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: dist-${{ matrix.os }}
-        path: dist/
+      - name: Verify compiled library exists
+        run: |
+          python -c "import platform, pathlib, sys; s=platform.system(); a=platform.machine().lower(); n=('_stretch_arm64.dylib' if s=='Darwin' and a in ('arm64', 'aarch64') else '_stretch_x64.dylib' if s=='Darwin' else '_stretch_aarch64.so' if s=='Linux' and a in ('arm64', 'aarch64') else '_stretch_x64.so' if s=='Linux' else '_stretch_x64.dll' if s=='Windows' and a in ('amd64', 'x86_64') else '_stretch.dll'); p=pathlib.Path('src/audiostretchy/c_interface/lib')/n; print('expect:', p); sys.exit(0 if p.exists() else 1)"
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist-${{ matrix.os }}
+          path: dist/

@@ -24,6 +24,10 @@ git submodule update --init --recursive
 echo "📦 Installing build dependencies..."
 python -m pip install --upgrade pip build twine
 
+# Compile C library before packaging
+echo "🧱 Compiling C library..."
+python scripts/compile_c.py --verbose
+
 # Build the package
 echo "🏗️ Building package..."
 python -m build
