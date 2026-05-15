@@ -1,5 +1,11 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs", "numpy>=1.23.0"]
+requires = [
+    "hatchling",
+    "hatch-vcs",
+    "fire>=0.5.0",
+    "numpy>=1.23.0",
+    "pedalboard>=0.8.6",
+]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.hooks.custom]
