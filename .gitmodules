@@ -1,7 +1,3 @@
 [submodule "vendors/resample"]
 	path = vendors/resample
 	url = https://github.com/dbry/audio-resampler
-[submodule "audio-stretch"]
-	path = audio-stretch
-	url = https://github.com/ogra/audio-stretch.git
-	branch = ogra/feat-implement-float32
