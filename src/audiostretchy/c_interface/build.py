@@ -24,7 +24,7 @@ class AudioStretchBuilder:
             output_dir: Path for compiled libraries (defaults to c_interface/lib)
         """
         self.project_root = Path(__file__).parent.parent.parent.parent
-        self.source_dir = source_dir or self.project_root / "audio-stretch"
+        self.source_dir = source_dir or self.project_root / "vendors" / "stretch"
         self.output_dir = output_dir or Path(__file__).parent / "lib"
         
         self.system = platform.system()
