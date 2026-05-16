@@ -12,8 +12,11 @@ AudioStretchy can be installed in multiple ways depending on your needs. The pac
 
 ### Requirements
 
-- Python 3.8 or higher
+- Python 3.11 to 3.13
 - pip package manager
+
+!!! warning "Python 3.14"
+    Python 3.14 is temporarily excluded from the official support and release matrix for this fork. On GitHub-hosted Ubuntu runners, importing `pedalboard` under Python 3.14 currently crashes with `Illegal instruction` (`SIGILL`) before AudioStretchy's own code runs. Support can be restored once that upstream compatibility issue is fixed.
 
 ### Quick Install
 

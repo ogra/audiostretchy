@@ -14,10 +14,12 @@ AudioStretchy welcomes contributions from the community! Whether you're fixing b
 
 Before contributing, ensure you have:
 
-- **Python 3.8+** installed
+- **Python 3.11 to 3.13** installed
 - **Git** for version control
 - **C compiler** for building extensions (if modifying C code)
 - **FFmpeg** for audio format support
+
+Python 3.14 is temporarily excluded from the supported development and release matrix for this fork because importing `pedalboard` on GitHub-hosted Ubuntu runners currently crashes with `Illegal instruction` (`SIGILL`).
 
 ### Setting Up Development Environment
 
@@ -61,13 +63,13 @@ pre-commit install
 
 AudioStretchy uses several tools to maintain code quality:
 
-| Tool | Purpose | Configuration |
-|------|---------|---------------|
-| **Black** | Code formatting | `pyproject.toml` |
-| **isort** | Import sorting | `.isort.cfg` |
-| **Flake8** | Linting | `pyproject.toml` |
-| **pytest** | Testing | `pyproject.toml` |
-| **pre-commit** | Git hooks | `.pre-commit-config.yaml` |
+| Tool           | Purpose         | Configuration             |
+| -------------- | --------------- | ------------------------- |
+| **Black**      | Code formatting | `pyproject.toml`          |
+| **isort**      | Import sorting  | `.isort.cfg`              |
+| **Flake8**     | Linting         | `pyproject.toml`          |
+| **pytest**     | Testing         | `pyproject.toml`          |
+| **pre-commit** | Git hooks       | `.pre-commit-config.yaml` |
 
 ## Development Workflow
 
@@ -97,7 +99,7 @@ def stretch_audio(
 ) -> None:
     """
     Stretch audio file with specified ratio.
-    
+
     Args:
         input_path: Path to input audio file
         output_path: Path for output file
@@ -114,14 +116,14 @@ def stretch_audio(
 class AudioStretch:
     """
     Audio time-stretching processor using TDHS algorithm.
-    
+
     This class provides high-level interface for audio time-stretching
     without pitch changes. It uses the Time-Domain Harmonic Scaling
     algorithm for natural-sounding results.
-    
+
     Example:
         Basic usage:
-        
+
         >>> processor = AudioStretch()
         >>> processor.open("input.wav")
         >>> processor.stretch(ratio=1.2)
@@ -136,10 +138,10 @@ def validate_ratio(ratio: float) -> None:
     """Validate stretch ratio parameter."""
     if not isinstance(ratio, (int, float)):
         raise TypeError(f"Ratio must be numeric, got {type(ratio)}")
-    
+
     if ratio <= 0:
         raise ValueError(f"Ratio must be positive, got {ratio}")
-    
+
     if ratio > 4.0 or ratio < 0.25:
         raise ValueError(f"Ratio {ratio} outside supported range (0.25-4.0)")
 ```
@@ -164,7 +166,7 @@ def test_basic_stretching():
     """Test basic audio stretching functionality."""
     # Create test audio or use fixtures
     stretch_audio("tests/data/test.wav", "tests/output/stretched.wav", ratio=1.2)
-    
+
     # Validate output exists and has expected properties
     assert Path("tests/output/stretched.wav").exists()
 ```
@@ -176,18 +178,18 @@ def test_full_pipeline(tmp_path):
     """Test complete processing pipeline."""
     input_file = tmp_path / "input.wav"
     output_file = tmp_path / "output.wav"
-    
+
     # Generate test audio
     create_test_audio(input_file, duration=2.0, sample_rate=44100)
-    
+
     # Process
     stretch_audio(str(input_file), str(output_file), ratio=1.5)
-    
+
     # Validate
     original_duration = get_audio_duration(input_file)
     stretched_duration = get_audio_duration(output_file)
     expected_duration = original_duration * 1.5
-    
+
     assert abs(stretched_duration - expected_duration) < 0.1
 ```
 
@@ -274,11 +276,13 @@ When reporting bugs, include:
 Clear description of the problem
 
 **To Reproduce**
+
 1. Steps to reproduce
 2. Expected behavior
 3. Actual behavior
 
 **Environment**
+
 - OS: [e.g., Windows 10, macOS 12, Ubuntu 20.04]
 - Python version: [e.g., 3.9.7]
 - AudioStretchy version: [e.g., 1.2.3]
@@ -300,10 +304,10 @@ def test_handles_empty_audio():
 def load_audio_file(file_path):
     """Load audio file with empty file validation."""
     audio_data = pedalboard.load(file_path)
-    
+
     if len(audio_data) == 0:
         raise ValueError(f"Audio file is empty: {file_path}")
-    
+
     return audio_data
 ```
 
@@ -324,18 +328,18 @@ Before implementing new features:
 # Example: Adding a quality assessment feature
 class QualityAnalyzer:
     """Analyze audio quality after stretching."""
-    
+
     def __init__(self):
         self.metrics = ['snr', 'thd', 'perceptual']
-    
+
     def analyze(self, original: np.ndarray, stretched: np.ndarray) -> Dict[str, float]:
         """
         Analyze quality of stretched audio.
-        
+
         Args:
             original: Original audio samples
             stretched: Stretched audio samples
-            
+
         Returns:
             Dictionary of quality metrics
         """
@@ -366,11 +370,11 @@ def stretch_audio(
 ) -> None:
     """
     Stretch audio file without changing pitch.
-    
+
     This function provides a simple interface for audio time-stretching
     using the TDHS (Time-Domain Harmonic Scaling) algorithm. The duration
     of the audio is changed while preserving the original pitch and timbre.
-    
+
     Args:
         input_path: Path to the input audio file. Supports various formats
             including WAV, MP3, FLAC, OGG via Pedalboard library.
@@ -380,27 +384,27 @@ def stretch_audio(
             values < 1.0 make audio faster (shorter). Default is 1.0 (no change).
         **kwargs: Additional parameters passed to the TDHS algorithm.
             See Parameters section for details.
-    
+
     Raises:
         FileNotFoundError: If input file doesn't exist.
         ValueError: If ratio is invalid or other parameter errors.
         RuntimeError: If processing fails.
-    
+
     Example:
         Basic usage:
-        
+
         >>> stretch_audio("input.mp3", "output.wav", ratio=1.2)
-        
+
         Advanced usage with parameters:
-        
+
         >>> stretch_audio(
-        ...     "speech.wav", 
+        ...     "speech.wav",
         ...     "slow_speech.wav",
         ...     ratio=1.5,
         ...     upper_freq=300,
         ...     lower_freq=80
         ... )
-    
+
     Note:
         For processing multiple files or advanced control, consider using
         the AudioStretch class directly.
@@ -421,12 +425,12 @@ def profile_stretching():
     """Profile audio stretching performance."""
     pr = cProfile.Profile()
     pr.enable()
-    
+
     # Run the code to profile
     stretch_audio("large_test_file.wav", "output.wav", ratio=1.2)
-    
+
     pr.disable()
-    
+
     # Analyze results
     stats = pstats.Stats(pr)
     stats.sort_stats('cumulative')
@@ -450,15 +454,15 @@ def process_large_file(audio_data, ratio):
 def process_large_file_chunked(audio_data, ratio, chunk_size=8192):
     """Process large audio file in chunks."""
     output_chunks = []
-    
+
     for i in range(0, len(audio_data), chunk_size):
         chunk = audio_data[i:i + chunk_size]
         processed_chunk = stretch_algorithm(chunk, ratio)
         output_chunks.append(processed_chunk)
-        
+
         # Free memory explicitly for very large files
         del chunk
-    
+
     return np.concatenate(output_chunks)
 ```
 
@@ -519,15 +523,15 @@ from audiostretchy.interface.tdhs import TDHSAudioStretch
 def test_c_library():
     """Test C library functionality."""
     processor = TDHSAudioStretch()
-    
+
     # Test initialization
     context = processor.init(44100, 2, 1.2)
     assert context is not None
-    
+
     # Test processing
     test_audio = np.random.randint(-32768, 32767, 1000, dtype=np.int16)
     result = processor.process(context, test_audio)
-    
+
     assert len(result) > 0
     processor.cleanup(context)
 ```
@@ -565,7 +569,7 @@ make release VERSION=1.3.0
 
 The automated pipeline:
 
-1. **Tests** on multiple Python versions and platforms
+1. **Tests** on Python 3.11 to 3.13 across multiple platforms
 2. **Builds** wheels for all platforms
 3. **Publishes** to PyPI on tag creation
 4. **Updates** documentation
@@ -604,24 +608,24 @@ To implement alternative stretching algorithms:
 ```python
 class CustomStretchAlgorithm:
     """Template for custom stretch algorithms."""
-    
+
     def __init__(self):
         self.name = "custom_algorithm"
-    
+
     def stretch(self, audio_data: np.ndarray, ratio: float) -> np.ndarray:
         """
         Implement your stretching algorithm here.
-        
+
         Args:
             audio_data: Input audio samples
             ratio: Stretch ratio
-            
+
         Returns:
             Stretched audio samples
         """
         # Your algorithm implementation
         pass
-    
+
     def validate_parameters(self, **params) -> bool:
         """Validate algorithm-specific parameters."""
         pass
@@ -637,10 +641,10 @@ from audiostretchy.plugins import StretchPlugin
 
 class PhaseVocoderPlugin(StretchPlugin):
     """Phase vocoder stretching plugin."""
-    
+
     name = "phase_vocoder"
     supported_ratios = (0.1, 10.0)
-    
+
     def stretch(self, audio_data, ratio, **params):
         """Phase vocoder implementation."""
         pass
@@ -653,11 +657,11 @@ Considerations for real-time applications:
 ```python
 class RealtimeAudioStretch:
     """Real-time audio stretching (future feature)."""
-    
+
     def __init__(self, buffer_size=1024, latency_ms=50):
         self.buffer_size = buffer_size
         self.max_latency = latency_ms
-        
+
     def process_chunk(self, audio_chunk):
         """Process audio in real-time chunks."""
         pass

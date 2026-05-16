@@ -34,7 +34,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
     "Topic :: Multimedia :: Sound/Audio",
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
@@ -137,4 +136,4 @@ ignore = ["E203", "W503", "S101", "PLR0913", "PLR0912", "PLR0915", "C901"]
 
 [tool.black]
 line-length = 88
-target-version = ["py311", "py312", "py313", "py314"]
+target-version = ["py311", "py312", "py313"]

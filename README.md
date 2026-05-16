@@ -79,6 +79,9 @@ This command installs `audiostretchy` along with its key dependencies:
 - `pedalboard`: For reading/writing various audio formats and for resampling.
 - `fire`: For the command-line interface.
 
+**Python version support note:**
+Python 3.14 is temporarily excluded from this fork's official support matrix and release validation. On GitHub-hosted Ubuntu runners, importing `pedalboard` under Python 3.14 currently crashes with `Illegal instruction` (`SIGILL`) before AudioStretchy's own code runs. Until that upstream binary compatibility issue is resolved, this project officially supports Python 3.11 to 3.13 for automated testing and release publishing.
+
 **Note on Pedalboard Dependencies (FFmpeg):**
 For `pedalboard` to support a wide range of audio formats (especially compressed ones like MP3, M4A, OGG), it relies on system libraries like FFmpeg. If you encounter issues opening or saving specific file types, ensure FFmpeg is installed and accessible in your system's PATH.
 
@@ -366,7 +369,8 @@ This will:
 ### CI/CD Pipeline
 
 - **Multi-platform testing**: Ubuntu, Windows, macOS
-- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
+- **Python versions**: 3.11, 3.12, 3.13
+- **Temporary exclusion**: Python 3.14 is currently excluded from release validation because importing `pedalboard` on GitHub-hosted Ubuntu runners crashes with `Illegal instruction` (`SIGILL`)
 - **Automatic wheel building**: Binary wheels for all platforms
 - **Automated PyPI publishing**: On git tag creation
 
