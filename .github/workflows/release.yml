@@ -21,7 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: "ogra/feat-support-float32"
           submodules: recursive
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -43,7 +42,11 @@ jobs:
       - name: Install system dependencies (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          choco install ffmpeg
+          choco install ffmpeg -y
+
+      - name: Set up MSVC environment
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install dependencies
         run: |
@@ -72,13 +75,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: "ogra/feat-support-float32"
           submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+
+      - name: Set up MSVC environment
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install build dependencies
         run: |
