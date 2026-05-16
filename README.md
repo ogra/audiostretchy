@@ -70,10 +70,14 @@ Below are links to a short audio file (as WAV and MP3), with the same file stret
 AudioStretchy includes a C extension that provides the core TDHS algorithm. Pre-compiled wheels are provided for Windows, macOS, and Linux, making installation straightforward via pip:
 
 ```bash
-python3 -m pip install audiostretchy
+python3 -m pip install audiostretchy-f32
 ```
 
-This command installs `audiostretchy` along with its key dependencies:
+This command installs `audiostretchy-f32` along with its key dependencies:
+
+**Compatibility note:**
+This fork intentionally keeps the Python import path as `audiostretchy` for compatibility with existing code.
+Installing both upstream `audiostretchy` and this fork (`audiostretchy-f32`) into the same environment is not recommended because they share the same import package name.
 
 - `numpy`: For numerical operations.
 - `pedalboard`: For reading/writing various audio formats and for resampling.

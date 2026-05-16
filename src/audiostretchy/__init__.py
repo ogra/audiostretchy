@@ -15,9 +15,12 @@ else:
     from importlib_metadata import PackageNotFoundError, version
 
 try:
-    __version__ = version("audiostretchy")
+    __version__ = version("audiostretchy-f32")
 except PackageNotFoundError:
-    __version__ = "unknown"
+    try:
+        __version__ = version("audiostretchy")
+    except PackageNotFoundError:
+        __version__ = "unknown"
 finally:
     del version, PackageNotFoundError
 
