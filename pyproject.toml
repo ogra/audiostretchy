@@ -18,7 +18,12 @@ description = "AudioStretchy is a Python library and CLI tool for high-quality t
 readme = "README.md"
 authors = [{name = "Adam Twardoch", email = "adam+github@twardoch.com"}]
 license = "BSD-3-Clause"
-license-files = ["LICENSE.txt", "AUTHORS.md"]
+license-files = [
+    "LICENSE.txt",
+    "AUTHORS.md",
+    "vendors/stretch/license.txt",
+    "THIRD_PARTY_NOTICES.md",
+]
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 4 - Beta",

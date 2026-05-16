@@ -366,7 +366,8 @@ See [SEMVER_GUIDE.md](SEMVER_GUIDE.md) for detailed release documentation.
 ## License
 
 *   The Python wrapper code for AudioStretchy (this project) is licensed under the **BSD-3-Clause License**. See [LICENSE.txt](./LICENSE.txt). Copyright (c) 2023-2024 Adam Twardoch.
-*   The core C library `vendors/stretch/stretch.c` is Copyright (c) David Bryant and is included under its original BSD-style license.
+*   The vendored core C library (`vendors/stretch/stretch.c`, `vendors/stretch/stretch.h`) originates from [ogra/audio-stretch](https://github.com/ogra/audio-stretch), branch `ogra/feat-implement-float32`, and is distributed under its original BSD-style license. See [vendors/stretch/license.txt](./vendors/stretch/license.txt).
+*   Third-party attribution details are summarized in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 *   Audio I/O and Resampling functionalities are provided by [Spotify's Pedalboard library](https://github.com/spotify/pedalboard), which is licensed under the Apache License 2.0. Pedalboard itself may utilize other libraries with their own respective licenses (e.g., libsndfile, Rubber Band library).
 *   Some Python code may have been written with assistance from AI language models.
 
