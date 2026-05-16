@@ -7,10 +7,10 @@
 *.orig
 *.log
 *.pot
-__pycache__/*
-.cache/*
+__pycache__/
+.cache/
 .*.swp
-*/.ipynb_checkpoints/*
+*/.ipynb_checkpoints/
 .DS_Store
 *.dylib
 *.so

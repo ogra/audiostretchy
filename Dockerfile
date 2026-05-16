@@ -1,6 +1,7 @@
 # this_file: Dockerfile
 
-FROM python:3.11-slim
+FROM python:3.14-slim
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -20,7 +21,7 @@ RUN pip install --no-cache-dir build
 COPY . .
 
 # Install the package
-RUN pip install -e .[testing]
+RUN pip install -e .[test]
 
 # Run tests by default
 CMD ["python", "-m", "pytest", "tests/", "-v"]
