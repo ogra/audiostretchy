@@ -28,25 +28,33 @@
 #define STRETCH_FAST_FLAG    0x1    // use "fast" version of period determination code
 #define STRETCH_DUAL_FLAG    0x2    // cascade two instances (doubles usable ratio range)
 
+#ifndef STRETCH_API
+#ifdef _WIN32
+#define STRETCH_API __declspec(dllexport)
+#else
+#define STRETCH_API
+#endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef void *StretchHandle;
 
-StretchHandle stretch_init (int shortest_period, int longest_period, int num_chans, int flags);
-int stretch_output_capacity (StretchHandle handle, int max_num_samples, float max_ratio);
+STRETCH_API StretchHandle stretch_init (int shortest_period, int longest_period, int num_chans, int flags);
+STRETCH_API int stretch_output_capacity (StretchHandle handle, int max_num_samples, float max_ratio);
 
 // Original int16 API (maintained for backward compatibility)
-int stretch_samples (StretchHandle handle, const int16_t *samples, int num_samples, int16_t *output, float ratio);
-int stretch_flush (StretchHandle handle, int16_t *output);
+STRETCH_API int stretch_samples (StretchHandle handle, const int16_t *samples, int num_samples, int16_t *output, float ratio);
+STRETCH_API int stretch_flush (StretchHandle handle, int16_t *output);
 
 // New float32 API (preferred for new code)
-int stretch_samples_float (StretchHandle handle, const float *samples, int num_samples, float *output, float ratio);
-int stretch_flush_float (StretchHandle handle, float *output);
+STRETCH_API int stretch_samples_float (StretchHandle handle, const float *samples, int num_samples, float *output, float ratio);
+STRETCH_API int stretch_flush_float (StretchHandle handle, float *output);
 
-void stretch_reset (StretchHandle handle);
-void stretch_deinit (StretchHandle handle);
+STRETCH_API void stretch_reset (StretchHandle handle);
+STRETCH_API void stretch_deinit (StretchHandle handle);
 
 #ifdef __cplusplus
 }
