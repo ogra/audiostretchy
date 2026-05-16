@@ -4,7 +4,6 @@ requires = [
     "hatch-vcs",
     "fire>=0.5.0",
     "numpy>=2.4.5",
-    "pedalboard>=0.9.23",
 ]
 build-backend = "hatchling.build"
 

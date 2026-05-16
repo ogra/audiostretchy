@@ -21,11 +21,15 @@ def main():
     
     args = parser.parse_args()
     
-    # Add project src to path
+    # Load build module directly to avoid triggering audiostretchy.__init__
+    # (which imports pedalboard's native extension and can SIGILL on some platforms)
+    import importlib.util
     project_root = Path(__file__).parent.parent
-    sys.path.insert(0, str(project_root / "src"))
-    
-    from audiostretchy.c_interface.build import AudioStretchBuilder
+    _build_py = project_root / "src" / "audiostretchy" / "c_interface" / "build.py"
+    _spec = importlib.util.spec_from_file_location("_audiostretchy_c_build", _build_py)
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    AudioStretchBuilder = _mod.AudioStretchBuilder
     
     # Create builder
     builder = AudioStretchBuilder(args.source_dir, args.output_dir)
